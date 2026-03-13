@@ -1,0 +1,593 @@
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom'
+import { getReports, updateReport, deleteReport, getImageUrl } from '../../services/api';
+
+function AdminReports() {
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [filters, setFilters] = useState({ status: 'all', type: 'all' });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const fetchReports = async () => {
+    try {
+      const response = await getReports();
+      setReports(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error:', err);
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await updateReport(id, { status: newStatus });
+      setReports(reports.map(report => 
+        report.id === id ? { ...report, status: newStatus } : report
+      ));
+    } catch (err) {
+      alert('Failed to update status');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this report?')) return;
+    setDeletingId(id);
+    try {
+      await deleteReport(id);
+      setReports(reports.filter(report => report.id !== id));
+    } catch (err) {
+      alert('Delete failed');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const colors = {
+      Pending: { bg: '#ffaa00', text: '#000' },
+      'In Progress': { bg: '#4361ee', text: '#fff' },
+      Resolved: { bg: '#10b981', text: '#fff' }
+    };
+    const style = colors[status] || { bg: '#6c757d', text: '#fff' };
+    return (
+      <span style={{
+        background: style.bg,
+        color: style.text,
+        padding: '4px 12px',
+        borderRadius: '20px',
+        fontSize: '12px',
+        fontWeight: '500',
+        display: 'inline-block'
+      }}>
+        {status}
+      </span>
+    );
+  };
+
+  // Filter and search reports
+  const filteredReports = reports.filter(report => {
+    // Status filter
+    if (filters.status !== 'all' && report.status !== filters.status) return false;
+    
+    // Type filter
+    if (filters.type !== 'all' && report.report_type !== filters.type) return false;
+    
+    // Search term
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      return (
+        report.title?.toLowerCase().includes(term) ||
+        report.author_name?.toLowerCase().includes(term) ||
+        report.room?.toLowerCase().includes(term) ||
+        report.report_type?.toLowerCase().includes(term) ||
+        report.description?.toLowerCase().includes(term)
+      );
+    }
+    
+    return true;
+  });
+
+  if (loading) return (
+    <div style={{ 
+      background: '#f5f7fb', 
+      minHeight: '100vh', 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center',
+      padding: '20px'
+    }}>
+      <div style={{ color: '#1a1a2c', textAlign: 'center' }}>
+        <i className="bi bi-arrow-repeat" style={{ fontSize: '30px', animation: 'spin 1s infinite linear', display: 'block', marginBottom: '15px', color: '#4361ee' }}></i>
+        Loading reports...
+      </div>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+
+  return (
+    <div style={{
+      background: '#f5f7fb',
+      minHeight: '100vh',
+      padding: isMobile ? '20px 10px 80px 10px' : '30px 20px',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+    }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '30px',
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
+          gap: '15px'
+        }}>
+          <div>
+            <h1 style={{ 
+              color: '#1a1a2c', 
+              fontSize: isMobile ? '24px' : '28px', 
+              margin: '0 0 5px 0',
+              fontWeight: '700'
+            }}>
+              <i className="bi bi-list-check" style={{ color: '#4361ee', marginRight: '10px' }}></i>
+              Manage Reports
+            </h1>
+            <p style={{ color: '#6c757d', fontSize: '14px', margin: 0 }}>
+              View, filter, and manage all campus reports
+            </p>
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '20px',
+          marginBottom: '30px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+        }}>
+          {/* Search Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '20px',
+            padding: '0 0 20px 0',
+            borderBottom: '1px solid #e9ecef'
+          }}>
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              background: '#f5f7fb',
+              borderRadius: '30px',
+              padding: '10px 20px'
+            }}>
+              <i className="bi bi-search" style={{ color: '#adb5bd', marginRight: '10px' }}></i>
+              <input
+                type="text"
+                placeholder="Search by title, reporter, room, type..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  width: '100%',
+                  fontSize: '14px',
+                  background: 'transparent'
+                }}
+              />
+              {searchTerm && (
+                <i 
+                  className="bi bi-x-circle" 
+                  style={{ color: '#adb5bd', cursor: 'pointer' }}
+                  onClick={() => setSearchTerm('')}
+                ></i>
+              )}
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', 
+            gap: '15px' 
+          }}>
+            <div>
+              <label style={{ 
+                color: '#1a1a2c', 
+                display: 'block', 
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                <i className="bi bi-flag" style={{ color: '#4361ee', marginRight: '5px' }}></i>
+                Status
+              </label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({...filters, status: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '12px 15px',
+                  background: '#f5f7fb',
+                  border: '1px solid #e9ecef',
+                  borderRadius: '12px',
+                  color: '#1a1a2c',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              >
+                <option value="all">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ 
+                color: '#1a1a2c', 
+                display: 'block', 
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                <i className="bi bi-tag" style={{ color: '#4361ee', marginRight: '5px' }}></i>
+                Type
+              </label>
+              <select
+                value={filters.type}
+                onChange={(e) => setFilters({...filters, type: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '12px 15px',
+                  background: '#f5f7fb',
+                  border: '1px solid #e9ecef',
+                  borderRadius: '12px',
+                  color: '#1a1a2c',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              >
+                <option value="all">All Types</option>
+                <option value="vandalism">Vandalism</option>
+                <option value="waste">Waste</option>
+                <option value="technical">Technical</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Filter Summary */}
+          <div style={{
+            marginTop: '15px',
+            padding: '10px 15px',
+            background: '#f8f9fa',
+            borderRadius: '10px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '13px',
+            color: '#6c757d'
+          }}>
+            <span>
+              <i className="bi bi-funnel" style={{ marginRight: '5px' }}></i>
+              Showing {filteredReports.length} of {reports.length} reports
+            </span>
+            {(filters.status !== 'all' || filters.type !== 'all' || searchTerm) && (
+              <button
+                onClick={() => {
+                  setFilters({ status: 'all', type: 'all' });
+                  setSearchTerm('');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#4361ee',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <i className="bi bi-x-circle"></i>
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Reports Table */}
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          overflow: 'hidden'
+        }}>
+          <div style={{ 
+            padding: '15px 20px', 
+            background: 'white', 
+            borderBottom: '1px solid #e9ecef',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ fontWeight: '600', color: '#1a1a2c' }}>
+              <i className="bi bi-table" style={{ color: '#4361ee', marginRight: '10px' }}></i>
+              All Reports
+            </div>
+            <div style={{
+              background: '#f5f7fb',
+              padding: '5px 12px',
+              borderRadius: '20px',
+              fontSize: '13px',
+              color: '#6c757d'
+            }}>
+              Total: {filteredReports.length}
+            </div>
+          </div>
+          
+          <div style={{ padding: '20px', overflowX: 'auto' }}>
+            {filteredReports.length === 0 ? (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '60px 20px',
+                color: '#6c757d'
+              }}>
+                <i className="bi bi-inbox" style={{ fontSize: '48px', display: 'block', marginBottom: '15px', color: '#e9ecef' }}></i>
+                <p>No reports found.</p>
+                {(filters.status !== 'all' || filters.type !== 'all' || searchTerm) && (
+                  <button
+                    onClick={() => {
+                      setFilters({ status: 'all', type: 'all' });
+                      setSearchTerm('');
+                    }}
+                    style={{
+                      background: '#4361ee',
+                      color: 'white',
+                      padding: '8px 20px',
+                      border: 'none',
+                      borderRadius: '30px',
+                      fontSize: '13px',
+                      marginTop: '10px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1200px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #e9ecef' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#6c757d', fontSize: '13px', fontWeight: '600' }}>ID</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#6c757d', fontSize: '13px', fontWeight: '600' }}>Title</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#6c757d', fontSize: '13px', fontWeight: '600' }}>Reporter</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#6c757d', fontSize: '13px', fontWeight: '600' }}>Type</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#6c757d', fontSize: '13px', fontWeight: '600' }}>Room</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#6c757d', fontSize: '13px', fontWeight: '600' }}>Photo</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#6c757d', fontSize: '13px', fontWeight: '600' }}>Status</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#6c757d', fontSize: '13px', fontWeight: '600' }}>Date</th>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#6c757d', fontSize: '13px', fontWeight: '600' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredReports.map(report => (
+                    <tr key={report.id} style={{ 
+                      borderBottom: '1px solid #e9ecef',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <td style={{ padding: '12px', color: '#4361ee', fontWeight: '600', fontSize: '14px' }}>#{report.id}</td>
+                      <td style={{ padding: '12px' }}>
+                        <Link to={`/report/${report.id}`} style={{ 
+                          color: '#1a1a2c', 
+                          textDecoration: 'none',
+                          fontWeight: '500',
+                          fontSize: '14px'
+                        }}>
+                          {report.title}
+                        </Link>
+                      </td>
+                      <td style={{ padding: '12px', color: '#1a1a2c', fontSize: '14px' }}>{report.author_name}</td>
+                      <td style={{ padding: '12px', color: '#1a1a2c', fontSize: '14px' }}>{report.report_type}</td>
+                      <td style={{ padding: '12px', color: '#1a1a2c', fontSize: '14px' }}>{report.room}</td>
+                      <td style={{ padding: '12px' }}>
+                        {report.photo_path ? (
+                          <img 
+                            src={getImageUrl(report.photo_path)} 
+                            alt="thumb"
+                            style={{ 
+                              width: '40px', 
+                              height: '40px', 
+                              objectFit: 'cover', 
+                              borderRadius: '8px', 
+                              cursor: 'pointer',
+                              border: '2px solid #e9ecef',
+                              transition: 'transform 0.2s'
+                            }}
+                            onClick={() => setSelectedPhoto(report.photo_path)}
+                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'}
+                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                          />
+                        ) : (
+                          <span style={{ color: '#adb5bd', fontSize: '13px' }}>No photo</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <select
+                          value={report.status}
+                          onChange={(e) => handleStatusChange(report.id, e.target.value)}
+                          style={{
+                            padding: '6px 12px',
+                            background: '#f5f7fb',
+                            border: '1px solid #e9ecef',
+                            borderRadius: '20px',
+                            color: '#1a1a2c',
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            outline: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Resolved">Resolved</option>
+                        </select>
+                      </td>
+                      <td style={{ padding: '12px', color: '#6c757d', fontSize: '13px' }}>
+                        {new Date(report.created_at).toLocaleDateString()}
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <Link to={`/report/${report.id}`} style={{
+                            background: 'white',
+                            color: '#4361ee',
+                            padding: '6px 14px',
+                            borderRadius: '30px',
+                            textDecoration: 'none',
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            border: '1px solid #4361ee',
+                            transition: 'all 0.2s',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = '#4361ee';
+                            e.target.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'white';
+                            e.target.style.color = '#4361ee';
+                          }}
+                          >
+                            <i className="bi bi-eye"></i>
+                            View
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(report.id)}
+                            disabled={deletingId === report.id}
+                            style={{
+                              background: 'white',
+                              color: '#dc3545',
+                              padding: '6px 14px',
+                              borderRadius: '30px',
+                              border: '1px solid #dc3545',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              fontWeight: '500',
+                              opacity: deletingId === report.id ? 0.5 : 1,
+                              transition: 'all 0.2s',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (deletingId !== report.id) {
+                                e.target.style.background = '#dc3545';
+                                e.target.style.color = 'white';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (deletingId !== report.id) {
+                                e.target.style.background = 'white';
+                                e.target.style.color = '#dc3545';
+                              }
+                            }}
+                          >
+                            <i className="bi bi-trash"></i>
+                            {deletingId === report.id ? '...' : 'Delete'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+         {/* Photo Modal */}
+        {selectedPhoto && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '20px'
+          }} onClick={() => setSelectedPhoto(null)}>
+            <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%' }} onClick={e => e.stopPropagation()}>
+              <img 
+                src={getImageUrl(selectedPhoto)} 
+                alt="report full size"
+                style={{ 
+                  maxWidth: '100%', 
+                  maxHeight: '80vh', 
+                  borderRadius: '12px',
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+                }}
+              />
+              <button
+                onClick={() => setSelectedPhoto(null)}
+                style={{
+                  position: 'absolute',
+                  top: '-40px',
+                  right: '0',
+                  background: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(220,53,69,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ?
+              </button>
+            </div>
+          </div>
+        )}      </div>
+    </div>
+  );
+}
+ 
+export default AdminReports;
+              

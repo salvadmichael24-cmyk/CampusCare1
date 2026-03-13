@@ -1,0 +1,186 @@
+/* Custom styles for CampusCare */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Timeline styles for user dashboard */
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 50px;
+    margin-bottom: 20px;
+}
+
+.timeline-badge {
+    position: absolute;
+    left: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.timeline-content {
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+/* Card hover effects */
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Status badges */
+.badge {
+    font-size: 0.9em;
+    padding: 5px 10px;
+}
+
+/* Form styling */
+.form-control:focus, .form-select:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+/* Table styling */
+.table th {
+    background-color: #f8f9fa;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .timeline-item {
+        padding-left: 40px;
+    }
+    
+    .timeline-badge {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+    }
+}
+
+/* CampusCare Blue & Yellow Theme */
+.bg-primary-custom {
+    background-color: #1a73e8 !important; /* Google Blue */
+}
+
+.bg-secondary-custom {
+    background-color: #fbbc04 !important; /* Google Yellow */
+}
+
+.text-primary-custom {
+    color: #1a73e8 !important;
+}
+
+.text-secondary-custom {
+    color: #fbbc04 !important;
+}
+
+.border-primary-custom {
+    border-color: #1a73e8 !important;
+}
+
+.btn-blue {
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+}
+
+.btn-blue:hover {
+    background-color: #1557b0;
+    color: white;
+}
+
+.btn-yellow {
+    background-color: #fbbc04;
+    color: #202124;
+    border: none;
+}
+
+.btn-yellow:hover {
+    background-color: #f9ab00;
+    color: #202124;
+}
+
+/* Status badge updates */
+.badge.bg-success {
+    background-color: #1a73e8 !important; /* Blue instead of green */
+}
+
+.badge.bg-warning {
+    background-color: #fbbc04 !important; /* Keep yellow */
+    color: #202124 !important;
+}
+
+.badge.bg-info {
+    background-color: #669df6 !important; /* Light blue */
+}
+
+.badge.bg-danger {
+    background-color: #ea4335 !important; /* Keep red for danger */
+}
+
+/* Navbar update */
+.navbar.bg-success {
+    background-color: #1a73e8 !important; /* Blue navbar */
+}
+
+/* Card headers */
+.card-header.bg-success {
+    background-color: #1a73e8 !important; /* Blue headers */
+}
+
+/* Buttons */
+.btn-success {
+    background-color: #1a73e8 !important;
+    border-color: #1a73e8 !important;
+}
+
+.btn-success:hover {
+    background-color: #1557b0 !important;
+    border-color: #1557b0 !important;
+}
+
+.btn-outline-success {
+    color: #1a73e8 !important;
+    border-color: #1a73e8 !important;
+}
+
+.btn-outline-success:hover {
+    background-color: #1a73e8 !important;
+    color: white !important;
+}
+
+/* Timeline badges */
+.timeline-badge.bg-success {
+    background-color: #1a73e8 !important;
+}
+
+.timeline-badge.bg-info {
+    background-color: #669df6 !important;
+}
+
+.timeline-badge.bg-warning {
+    background-color: #fbbc04 !important;
+    color: #202124 !important;
+}
