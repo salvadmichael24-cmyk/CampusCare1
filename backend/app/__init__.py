@@ -20,32 +20,31 @@ def create_app(config_class=Config):
     print("=" * 50)
     
     # Initialize CORS FIRST - before other extensions
-    CORS(app, origins=["http://10.109.20.150:3000", "http://localhost:3000", "http://127.0.0.1:3000"], 
-         supports_credentials=True)
-    print("✅ CORS initialized")
+    CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://10.234.144.150:3000"], supports_credentials=True)
+    print("? CORS initialized")
     
     # Add route to serve uploaded files
     @app.route('/static/uploads/<path:filename>')
     def serve_upload(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-    print("✅ Static file serving configured")
+    print("? Static file serving configured")
     
     # Initialize extensions
     db.init_app(app)
-    print("✅ Database initialized")
+    print("? Database initialized")
     
     login_manager.init_app(app)
-    print("✅ Login manager initialized")
+    print("? Login manager initialized")
     
     mail.init_app(app)
-    print("✅ Mail initialized")
+    print("? Mail initialized")
     
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Please log in to access this page.'
     
     # Import models here to avoid circular imports
     from app.models import models
-    print("✅ Models imported")
+    print("? Models imported")
     
     @login_manager.user_loader
     def load_user(user_id):
@@ -57,11 +56,11 @@ def create_app(config_class=Config):
     app.register_blueprint(main.bp)
     app.register_blueprint(admin.bp)
     app.register_blueprint(api.bp)
-    print("✅ Blueprints registered")
+    print("? Blueprints registered")
     
     # Create upload folder if it doesn't exist
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    print(f"✅ Upload folder created at: {app.config['UPLOAD_FOLDER']}")
+    print(f"? Upload folder created at: {app.config['UPLOAD_FOLDER']}")
     
     # Test database connection
     with app.app_context():
@@ -69,9 +68,9 @@ def create_app(config_class=Config):
             # Try to query the database
             from app.models.models import User
             user_count = User.query.count()
-            print(f"✅ Database connection successful! Found {user_count} users")
+            print(f"? Database connection successful! Found {user_count} users")
         except Exception as e:
-            print(f"❌ Database connection error: {e}")
+            print(f"? Database connection error: {e}")
     
     print("=" * 50)
     print("APP CREATION COMPLETE")

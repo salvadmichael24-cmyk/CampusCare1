@@ -17,13 +17,15 @@ bp = Blueprint('api', __name__, url_prefix='/api')
 
 # Helper function to get the allowed origin based on request
 def get_allowed_origin():
-    # You can use a single origin for all requests
-    return "http://localhost:3000"
-    # Or dynamically set based on request origin:
-    # request_origin = request.headers.get('Origin')
-    # if request_origin in ["http://localhost:3000", "http://10.109.20.150:3000"]:
-    #     return request_origin
-    # return "http://localhost:3000"
+    request_origin = request.headers.get('Origin')
+    allowed_origins = [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://10.234.144.150:3000'
+    ]
+    if request_origin in allowed_origins:
+        return request_origin
+    return 'http://localhost:3000'
 
 # OPTIONS handlers for CORS preflight requests
 @bp.route('/login', methods=['OPTIONS'])
@@ -649,3 +651,62 @@ def reset_password_with_code():
     response.headers.add("Access-Control-Allow-Origin", get_allowed_origin())
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response, 200
+
+# Statistics endpoints
+@bp.route('/statistics', methods=['GET'])
+def get_public_statistics():
+    """Get public statistics for all users"""
+    try:
+        # Get total reports
+        total_reports = Report.query.count()
+        
+        # Get reports by type
+        from sqlalchemy import func
+        reports_by_type = db.session.query(
+            Report.report_type, 
+            func.count(Report.id)
+        ).group_by(Report.report_type).all()
+        
+        by_type = [{'type': t, 'count': c} for t, c in reports_by_type if t]
+        
+        # Get reports by room
+        reports_by_room = db.session.query(
+            Report.room, 
+            func.count(Report.id)
+        ).group_by(Report.room).all()
+        
+        by_room = [{'room': r, 'count': c} for r, c in reports_by_room if r]
+        
+        # Get reports by status
+        reports_by_status = db.session.query(
+            Report.status, 
+            func.count(Report.id)
+        ).group_by(Report.status).all()
+        
+        by_status = [{'status': s, 'count': c} for s, c in reports_by_status if s]
+        
+        response = jsonify({
+            'total': total_reports,
+            'by_type': by_type,
+            'by_room': by_room,
+            'by_status': by_status
+        })
+        response.headers.add("Access-Control-Allow-Origin", get_allowed_origin())
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response, 200
+        
+    except Exception as e:
+        print(f"Error in statistics endpoint: {e}")
+        response = jsonify({'error': str(e)})
+        response.headers.add("Access-Control-Allow-Origin", get_allowed_origin())
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response, 500
+
+@bp.route('/statistics', methods=['OPTIONS'])
+def handle_statistics_options():
+    response = make_response()
+    response.headers.add("Access-Control-Allow-Origin", get_allowed_origin())
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
